@@ -129,7 +129,8 @@ fn test_withdraw_negative_panics() {
 #[should_panic(expected = "Insufficient balance")]
 fn test_withdraw_from_empty_balance_panics() {
     // AC: Withdrawing from an empty balance fails.
-    let (env, _id, client) = setup();
+    let env = test_env();
+    let (_id, client) = init_contract(&env);
     let user = Address::generate(&env);
 
     // User never deposited — balance is implicitly 0
@@ -140,7 +141,8 @@ fn test_withdraw_from_empty_balance_panics() {
 #[should_panic(expected = "Insufficient balance")]
 fn test_withdraw_exceeds_available_after_deposit_panics() {
     // AC: Withdrawing more than available balance fails.
-    let (env, _id, client) = setup();
+    let env = test_env();
+    let (_id, client) = init_contract(&env);
     let user = Address::generate(&env);
 
     client.deposit(&user, &100);
@@ -158,7 +160,8 @@ fn test_failed_withdraw_does_not_change_available_balance() {
     // Strategy (no_std): perform a *valid* withdraw of the exact balance to
     // prove state is only mutated on success, paired with the should_panic
     // test below that confirms rejection happens before any write.
-    let (env, _id, client) = setup();
+    let env = test_env();
+    let (_id, client) = init_contract(&env);
     let user = Address::generate(&env);
 
     client.deposit(&user, &100);
@@ -176,7 +179,8 @@ fn test_failed_withdraw_does_not_change_available_balance() {
 fn test_failed_withdraw_does_not_change_available_balance_panics() {
     // Confirms that attempting to withdraw 1 unit more than deposited
     // is rejected (panics) — i.e. the balance is never decremented.
-    let (env, _id, client) = setup();
+    let env = test_env();
+    let (_id, client) = init_contract(&env);
     let user = Address::generate(&env);
 
     client.deposit(&user, &100);
@@ -189,7 +193,8 @@ fn test_failed_withdraw_does_not_change_locked_balance() {
     // AC: Failed withdrawal does not change locked balance if applicable.
     // Depositing 500 and locking 300 leaves 200 available.
     // Attempting to withdraw 201 must panic, leaving both balances intact.
-    let (env, _id, client) = setup();
+    let env = test_env();
+    let (_id, client) = init_contract(&env);
     let user = Address::generate(&env);
 
     env.ledger().with_mut(|li| {
