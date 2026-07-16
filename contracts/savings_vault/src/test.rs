@@ -26,9 +26,10 @@ fn setup() -> (Env, Address, SavingsVaultClient<'static>) {
 fn test_initialize() {
     let (env, _id, client) = setup();
     let admin = Address::generate(&env);
+    let token = Address::generate(&env);
 
     // Should succeed the first time
-    client.initialize(&admin);
+    client.initialize(&admin, &token);
 }
 
 #[test]
@@ -36,10 +37,12 @@ fn test_initialize() {
 fn test_initialize_twice_panics() {
     let (env, _id, client) = setup();
     let admin = Address::generate(&env);
+    let token = Address::generate(&env);
 
-    client.initialize(&admin);
+    // Should succeed the first time
+    client.initialize(&admin, &token);
     // Second call should panic
-    client.initialize(&admin);
+    client.initialize(&admin, &token);
 }
 
 // =========================================================================
@@ -87,53 +90,120 @@ fn test_deposit_negative_panics() {
 // Withdrawal Tests
 // =========================================================================
 
+fn test_token(
+    env: Env,
+    client: SavingsVaultClient<'static>,
+) -> (
+    Env,
+    Address,
+    SavingsVaultClient<'static>,
+    token::Client<'static>,
+    token::StellarAssetClient<'static>,
+) {
+    let admin = Address::generate(&env);
+
+    let contract = env.register_stellar_asset_contract_v2(admin.clone());
+    let contract_address = contract.address();
+
+    client.initialize(&admin, &contract_address);
+
+    let token_client = token::Client::new(&env, &contract_address);
+    let token_admin = token::StellarAssetClient::new(&env, &contract_address);
+    (env.clone(), admin, client, token_client, token_admin)
+}
+
 #[test]
 fn test_withdraw() {
-    let (env, _id, client) = setup();
-    let user = Address::generate(&env);
+    let (env, current_contract_address, client) = setup();
 
-    client.deposit(&user, &500);
+    let (env, _admin, client, token_client, token_admin) = test_token(env, client);
+
+    let user = Address::generate(&env);
+    let deposit_amount = 500;
+
+    // SAC Transfer not yet implemented for deposit so i'll mimick it by trnasfering asset(deposit_amount) from user to the contract
+    client.deposit(&user, &deposit_amount);
+
+    token_admin.mint(&user, &10000);
+
+    let user_balance = token_client.balance(&user);
+    assert_eq!(&user_balance, &10000);
+
+    token_client.transfer(&user, &current_contract_address, &deposit_amount); // This should be removed when deposit function implements SAC
+
+    let user_balance = token_client.balance(&user);
+    assert_eq!(&user_balance, &9500);
+
+    let contract_balance = token_client.balance(&current_contract_address);
+    assert_eq!(&contract_balance, &500);
+
     client.withdraw(&user, &200);
     assert_eq!(client.get_balance(&user), 300);
 }
 
 #[test]
 fn test_withdraw_entire_balance() {
-    let (env, _id, client) = setup();
+    let (env, current_contract_address, client) = setup();
+    let (env, _admin, client, token_client, token_admin) = test_token(env, client);
     let user = Address::generate(&env);
+    let deposit_amount = 100;
 
-    client.deposit(&user, &100);
-    client.withdraw(&user, &100);
+    token_admin.mint(&user, &10000);
+
+    // SAC Transfer not yet implemented for deposit so i'll mimick it by trnasfering asset(deposit_amount) from user to the contract
+    client.deposit(&user, &deposit_amount);
+
+    token_client.transfer(&user, &current_contract_address, &deposit_amount); // This should be removed when deposit function implements SAC
+
+    client.withdraw(&user, &deposit_amount);
     assert_eq!(client.get_balance(&user), 0);
 }
 
 #[test]
 #[should_panic(expected = "Insufficient balance")]
 fn test_withdraw_more_than_balance_panics() {
-    let (env, _id, client) = setup();
+    let (env, current_contract_address, client) = setup();
+    let (env, _admin, client, token_client, token_admin) = test_token(env, client);
     let user = Address::generate(&env);
+    token_admin.mint(&user, &10000);
 
+    // SAC Transfer not yet implemented for deposit so i'll mimick it by trnasfering asset(deposit_amount) from user to the contract
     client.deposit(&user, &100);
+
+    token_client.transfer(&user, &current_contract_address, &100); // This should be removed when deposit function implements SAC
+
     client.withdraw(&user, &200);
 }
 
 #[test]
 #[should_panic(expected = "Withdrawal amount must be greater than zero")]
 fn test_withdraw_zero_panics() {
-    let (env, _id, client) = setup();
+    let (env, current_contract_address, client) = setup();
+    let (env, _admin, client, token_client, token_admin) = test_token(env, client);
     let user = Address::generate(&env);
+    token_admin.mint(&user, &10000);
 
+    // SAC Transfer not yet implemented for deposit so i'll mimick it by trnasfering asset(deposit_amount) from user to the contract
     client.deposit(&user, &100);
+
+    token_client.transfer(&user, &current_contract_address, &100); // This should be removed when deposit function implements SAC
+
     client.withdraw(&user, &0);
 }
 
 #[test]
 #[should_panic(expected = "Withdrawal amount must be greater than zero")]
 fn test_withdraw_negative_panics() {
-    let (env, _id, client) = setup();
+    let (env, current_contract_address, client) = setup();
+    let (env, _admin, client, token_client, token_admin) = test_token(env, client);
     let user = Address::generate(&env);
+    token_admin.mint(&user, &10000);
 
+    // SAC Transfer not yet implemented for deposit so i'll mimick it by trnasfering asset(deposit_amount) from user to the contract
     client.deposit(&user, &100);
+
+    token_client.transfer(&user, &current_contract_address, &100); // This should be removed when deposit function implements SAC
+
     client.withdraw(&user, &-10);
 }
 
@@ -308,12 +378,21 @@ fn test_can_withdraw_no_locked_funds() {
 
 #[test]
 fn test_separate_user_balances() {
-    let (env, _id, client) = setup();
+    let (env, current_contract_address, client) = setup();
+    let (env, _admin, client, token_client, token_admin) = test_token(env, client);
+
     let alice = Address::generate(&env);
     let bob = Address::generate(&env);
 
+    token_admin.mint(&alice, &10000);
+    token_admin.mint(&bob, &10000);
+
+    // SAC Transfer not yet implemented for deposit so i'll mimick it by trnasfering asset(deposit_amount) from user to the contract
     client.deposit(&alice, &1000);
     client.deposit(&bob, &500);
+
+    token_client.transfer(&alice, &current_contract_address, &1000); // This should be removed when deposit function implements SAC
+    token_client.transfer(&bob, &current_contract_address, &500); // This should be removed when deposit function implements SAC
 
     assert_eq!(client.get_balance(&alice), 1000);
     assert_eq!(client.get_balance(&bob), 500);
