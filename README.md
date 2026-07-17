@@ -1,6 +1,14 @@
 # Stellar PocketPay — Savings Vault Contract
 
 [CHANGELOG](CHANGELOG.md)
+
+## Project Status and Scope
+
+This project is currently intended for development, learning, and Stellar testnet usage. It is **not production-ready or mainnet-ready**.
+
+The savings vault currently uses internal balance tracking: `deposit`, `withdraw`, and locking operations update accounting records stored by the contract, but they do not move or custody XLM or other tokens. The contract should therefore **not be treated as a real token custody contract**.
+
+Supporting real asset deposits and withdrawals in the future may require integration with a Stellar Asset Contract (SAC), including explicit token transfer and custody behavior. See [Known Limitations](#known-limitations) for other current constraints.
 ## Security Considerations
 
 > **This contract is for educational and testnet use.** Review the following before any mainnet deployment.
@@ -216,7 +224,7 @@ stellar-pocketpay-contracts/
 - Admin and initialization flags use **instance** storage (tied to contract lifetime).
 
 ### Known Limitations
-- **No real token transfers**: This contract tracks balances internally but does not yet integrate with the Stellar Asset Contract (SAC) for actual XLM/token transfers. A production version should call the token contract's `transfer()` function.
+- **Internal accounting only**: This contract tracks balances internally and does not move or custody XLM or other tokens. Future real asset movement may require Stellar Asset Contract (SAC) integration and explicit token transfers.
 - **Single unlock time**: Locking funds multiple times overwrites the previous unlock timestamp. A production version might use per-lock entries.
 - **No admin recovery**: There is no mechanism for the admin to recover or migrate funds.
 - **No upgrade mechanism**: The contract does not implement `upgrade()`. Consider adding this for mainnet.
