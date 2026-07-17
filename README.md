@@ -1,4 +1,6 @@
 # Stellar PocketPay — Savings Vault Contract
+
+[CHANGELOG](CHANGELOG.md)
 ## Security Considerations
 
 > **This contract is for educational and testnet use.** Review the following before any mainnet deployment.
@@ -184,6 +186,11 @@ stellar-pocketpay-contracts/
             ├── lib.rs                  # Contract implementation
             └── test.rs                 # Unit tests
 ```
+
+---
+## Documentation
+
+- [Architecture Documentation](docs/architecture.md) – Overview of project structure, state management, storage, SDK integration, and future extension points.
 
 ---
 
