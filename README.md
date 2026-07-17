@@ -124,16 +124,15 @@ soroban keys address deployer
 
 Fund the account at [Stellar Friendbot](https://friendbot.stellar.org/?addr=YOUR_ADDRESS).
 
-### 3. Deploy the Contract
+3. Deploy the Contract
+
+Use the automated deployment script to build the release WASM and deploy it to the network. Pass your configured identity (e.g., `deployer`) as the first argument:
 
 ```bash
-soroban contract deploy \
-  --wasm target/wasm32-unknown-unknown/release/savings_vault.wasm \
-  --source deployer \
-  --network testnet
+./scripts/deploy-testnet.sh deployer
 ```
 
-Save the returned **Contract ID** — you'll need it to invoke functions.
+The script will verify prerequisites, compile the contract, deploy it, and print your new Contract ID. Save the returned Contract ID — you'll need it to invoke functions.
 
 ### 4. Initialize the Contract
 
